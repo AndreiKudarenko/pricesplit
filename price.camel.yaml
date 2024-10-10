@@ -1,0 +1,69 @@
+- route:
+    id: route-f47a
+    nodePrefixId: route-abd
+    from:
+      id: from-8040
+      uri: spring-rabbitmq
+      parameters:
+        exchangeName: priceList
+        queues: priceList
+        acknowledgeMode: AUTO
+        connectionFactory: "#bean:connectionFactory"
+      steps:
+        - setVariable:
+            id: setVariable-82bc
+            description: packageID
+            name: packageID
+            expression:
+              xpath:
+                id: xpath-b23b
+                expression: //packageID
+        - log:
+            id: log-cf31
+            message: ${body}
+        - split:
+            id: split-e024
+            expression:
+              xpath:
+                id: xpath-5137
+                expression: //priceList
+            steps:
+              - setBody:
+                  id: setBody-b936
+                  expression:
+                    simple:
+                      id: simple-7405
+                      expression: |2-
+                         <SOAP:Envelope xmlns:SOAP='http://schemas.xmlsoap.org/soap/envelope/'>
+                            <SOAP:Header/>
+                            <SOAP:Body>
+                                <ns1:pricelist xmlns:ns1='http://example.demo.com/'>
+                                    ${variable.packageID}
+                                    <data>
+                                            ${body}
+                                    </data>
+                                </ns1:pricelist>
+                            </SOAP:Body>
+                        </SOAP:Envelope>
+              - log:
+                  id: log-75e0
+                  message: ${body}
+              - to:
+                  id: to-0bf4
+                  uri: spring-rabbitmq
+                  parameters:
+                    exchangeName: priceListSplit
+                    testConnectionOnStartup: true
+                    connectionFactory: "#bean:connectionFactory"
+                    queues: priceListSplit
+                    routingKey: priceListSplit
+                    autoDeclareProducer: true
+- beans:
+    - name: connectionFactory
+      type: org.springframework.amqp.rabbit.connection.CachingConnectionFactory
+      properties:
+        host: "{{amqp.rabbitmq.addresses.host}}"
+        port: "{{amqp.rabbitmq.addresses.port}}"
+        username: "{{amqp.rabbitmq.username}}"
+        password: "{{amqp.rabbitmq.password}}"
+        virtualhost: "{{amqp.rabbitmq.virtualhost}}"
